@@ -1,7 +1,14 @@
 # Which Steam Hits Keep Their Players?
 
 INSY 674 (Enterprise Data Science), McGill, Fall 2026: final group project
-**Team:** TODO: names
+
+**Team:** Montserrat Balleza Velazquez (dev-Montsebllza),
+Mohamed Guessous (guessous-mohamed),
+Ishaan Khanna (ishaankhanna1998),
+Miles Koseleci-Vieira (mileskv2),
+Ruilei Ma (rl-ma),
+Daniel Puente Cavazos (cudapuca0),
+Irene Wang (icecomfort)
 
 Among Steam games that became hits (500+ reviews, released 2019–2023), we predict which ones still have **more players than expected for their size and age** years after launch, using only information available on launch day, and identify what drives staying power.
 
