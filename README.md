@@ -37,8 +37,8 @@ Libraries: pandas, numpy, scikit-learn, matplotlib (all preinstalled in Colab).
 - **Metric:** PR-AUC (random guessing = 0.25), plus ROC-AUC, F1, precision and recall.
 
 ## 2. Explore the data
-- About two-thirds of games were on sale on the snapshot day, so the price is corrected to the regular price.
-- Bigger hits keep proportionally more players (10× the reviews → about 17× the current players). A simple "players per review" target was biased toward big games, so we size-adjusted it.
+- After reviewing the pricing historical data we noticed that about 66% of games were on sale on the snapshot day, so the price had to be corrected to the regular price.
+- Bigger hits keep proportionally more players (about 17 times the average). The biggest games also have 10 times more reviews. A simple "players per review" target was too biased toward big games, so we size-adjusted it with a regression residual. Instead of dividing players by reviews, we asked how many players a game has compared with what’s typical for a game of its size and release year.
 - Replayable genres (sports, strategy, MMO, simulation) last; action and adventure don't. Online and community features (multiplayer, Workshop, level editors) go with lasting games.
 - Accessibility labels added to store pages years after launch are leakage.
 
