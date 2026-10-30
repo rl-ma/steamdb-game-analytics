@@ -1,14 +1,17 @@
 # Which Steam Hits Keep Their Players?
 
 INSY 674 (Enterprise Data Science), McGill, Fall 2026: final group project
+**Team:** Group 3
 
-**Team:** Montserrat Balleza Velazquez (dev-Montsebllza),
-Mohamed Guessous (guessous-mohamed),
-Ishaan Khanna (ishaankhanna1998),
-Miles Koseleci-Vieira (mileskv2),
-Ruilei Ma (rl-ma),
-Daniel Puente Cavazos (cudapuca0),
-Irene Wang (icecomfort)
+| Member | GitHub ID |
+|---|---|
+| Montserrat Balleza Velazquez | dev-Montsebllza |
+| Mohamed Guessous | guessous-mohamed |
+| Ishaan Khanna | ishaankhanna1998 |
+| Miles Koseleci-Vieira | mileskv2 |
+| Ruilei Ma | rl-ma |
+| Daniel Puente Cavazos | cudapuca0 |
+| Irene Wang | icecomfort |
 
 Among Steam games that became hits (500+ reviews, released 2019–2023), we predict which ones still have **more players than expected for their size and age** years after launch, using only information available on launch day, and identify what drives staying power.
 
@@ -18,7 +21,7 @@ Among Steam games that became hits (500+ reviews, released 2019–2023), we pred
 |---|---|
 | `steam_staying_power.ipynb` | The full project notebook (all five checklist sections, with outputs) |
 | `README.md` | This file: summary of each section |
-| `slides.pdf` | TODO: presentation slides |
+| `Steam_Staying_Power.pptx` | Presentation slides |
 
 ## How to run
 
@@ -28,7 +31,7 @@ Among Steam games that became hits (500+ reviews, released 2019–2023), we pred
 
 Libraries: pandas, numpy, scikit-learn, matplotlib (all preinstalled in Colab).
 
-**Data:** FronkonGames, *Steam Games Dataset*, https://huggingface.co/datasets/FronkonGames/steam-games-dataset (snapshot downloaded TODO: date). The parquet file is the main data; the CSV adds `Discount` (to recover regular prices) and player `Tags` (used only to remove idle games). The raw data isn't committed because it exceeds GitHub's file-size limit.
+**Data:** FronkonGames, *Steam Games Dataset*, https://huggingface.co/datasets/FronkonGames/steam-games-dataset. We use the version at Hugging Face commit `ba4e26785af33bee500e96597068c6e77f4edea9` (last updated 2 October 2026); the notebook downloads exactly this version. The parquet file is the main data; the CSV adds `Discount` (to recover regular prices) and player `Tags` (used only to remove idle games). The raw data isn't committed because it exceeds GitHub's file-size limit.
 
 ## 1. Frame the problem
 - **Objective:** help developers and publishers understand which launch-day characteristics predict that a successful game keeps its players. That informs design choices and decisions about funding updates, DLC and sequels.
@@ -37,8 +40,8 @@ Libraries: pandas, numpy, scikit-learn, matplotlib (all preinstalled in Colab).
 - **Metric:** PR-AUC (random guessing = 0.25), plus ROC-AUC, F1, precision and recall.
 
 ## 2. Explore the data
-- After reviewing the pricing historical data we noticed that about 66% of games were on sale on the snapshot day, so the price had to be corrected to the regular price.
-- Bigger hits keep proportionally more players (about 17 times the average). The biggest games also have 10 times more reviews. A simple "players per review" target was too biased toward big games, so we size-adjusted it with a regression residual. Instead of dividing players by reviews, we asked how many players a game has compared with what’s typical for a game of its size and release year.
+- About two-thirds of games were on sale on the snapshot day, so the price is corrected to the regular price.
+- Bigger hits keep proportionally more players (10× the reviews → about 17× the current players). A simple "players per review" target was biased toward big games, so we size-adjusted it.
 - Replayable genres (sports, strategy, MMO, simulation) last; action and adventure don't. Online and community features (multiplayer, Workshop, level editors) go with lasting games.
 - Accessibility labels added to store pages years after launch are leakage.
 
