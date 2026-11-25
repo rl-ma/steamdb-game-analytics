@@ -1,0 +1,4 @@
+# Raw Steam data downloaded by the prototype (about 570 MB)
+data/
+# Generated Evidently HTML reports
+reports/
