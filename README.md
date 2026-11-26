@@ -32,6 +32,46 @@ Libraries: pandas, numpy, scikit-learn, matplotlib (all preinstalled in Colab).
 
 **Data:** FronkonGames, *Steam Games Dataset*, https://huggingface.co/datasets/FronkonGames/steam-games-dataset. We use the version at Hugging Face commit `ba4e26785af33bee500e96597068c6e77f4edea9` (last updated 2 October 2026); the notebook downloads exactly this version. The parquet file is the main data; the CSV adds `Discount` (to recover regular prices) and player `Tags` (used only to remove idle games). The raw data isn't committed because it exceeds GitHub's file-size limit.
 
+## Problem
+
+We predict which Steam hit games keep their players years after launch, using only launch-day information. We now serve that model as a Dockerized MLOps system with a prediction form, an API, experiment tracking, monitoring and automatic retraining.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    user([User]) --> frontend["frontend<br/>Streamlit :8501"]
+    frontend -->|POST /predict| api["api<br/>FastAPI :8000"]
+    api -->|load champion model at startup| mlflow["mlflow :5000"]
+    api -->|log predictions| postgres[("postgres :5432")]
+    mlflow -->|backend store| postgres
+    simulator["simulator"] -->|send test games| api
+    simulator -->|true labels| postgres
+    monitoring["monitoring<br/>Evidently"] -->|read predictions and labels| postgres
+    monitoring -->|write drift_metrics| postgres
+    prometheus["prometheus :9090"] -->|scrape /metrics| api
+    grafana["grafana :3000"] --> prometheus
+    grafana --> postgres
+    grafana -->|drift alert triggers retraining| prefect["prefect :4200<br/>training flow"]
+    prefect -->|register new champion| mlflow
+```
+
+## Setup
+
+Coming soon. The final version will explain how to copy `.env.example` to `.env`, start everything with `docker compose up`, and shut it down again.
+
+## Tools
+
+- MLflow: tracks experiments and holds the registered model
+- Prefect: runs the training and retraining flow
+- FastAPI: serves predictions
+- Streamlit: the prediction form
+- PostgreSQL: stores predictions, true labels and drift results
+- Evidently: measures data drift
+- Prometheus and Grafana: metrics, dashboards and alerts
+- Docker Compose: starts the whole system
+- GitHub Actions: CI/CD
+
 ## 1. Frame the problem
 - **Objective:** help developers and publishers understand which launch-day characteristics predict that a successful game keeps its players. That informs design choices and decisions about funding updates, DLC and sequels.
 - **Framing:** supervised binary classification, offline (batch) learning.
