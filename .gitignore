@@ -1,4 +1,26 @@
+# Data files (downloaded from Hugging Face)
 *.parquet
 *.csv
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebooks
 .ipynb_checkpoints/
+
+# Secrets & local runtime state
+.env
+mlruns/
+mlartifacts/
+*.db
+
+# OS
+.DS_Store
