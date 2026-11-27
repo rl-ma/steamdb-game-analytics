@@ -38,6 +38,9 @@ CATEGORICAL = ["mac", "linux", "has_content_notes"] + [f"genre_{g}" for g in TRA
 # (Bonferroni), and a batch drifts if any column does. Evidently's defaults gave too many
 # false alarms on small batches, see monitoring/README.md.
 COLUMN_ALPHA = 0.05 / len(NUMERICAL + CATEGORICAL)
+# Share of drifted columns for a batch to count as drifted: 1 column out of 19.
+# Set in Evidently too, so the HTML report gives the same verdict as our code.
+DRIFT_SHARE = 1 / len(NUMERICAL + CATEGORICAL)
 
 
 def monitoring_features(inputs: pd.DataFrame) -> pd.DataFrame:
@@ -77,7 +80,12 @@ def build_report(reference: pd.DataFrame, current: pd.DataFrame):
     definition = DataDefinition(numerical_columns=NUMERICAL, categorical_columns=CATEGORICAL)
     ref = Dataset.from_pandas(monitoring_features(reference), data_definition=definition)
     cur = Dataset.from_pandas(monitoring_features(current), data_definition=definition)
-    preset = DataDriftPreset(num_method="ks", cat_method="chisquare", threshold=COLUMN_ALPHA)
+    preset = DataDriftPreset(
+        num_method="ks",
+        cat_method="chisquare",
+        threshold=COLUMN_ALPHA,
+        drift_share=DRIFT_SHARE,
+    )
     return Report([preset]).run(cur, ref)
 
 
