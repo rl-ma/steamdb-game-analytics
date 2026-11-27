@@ -1,6 +1,6 @@
 # Which Steam Hits Keep Their Players?
 
-INSY 674 (Enterprise Data Science), McGill, Fall 2026: final group project
+INSY 684 (Enterprise Data Science), McGill, Fall 2026: final group project
 **Team:** Group 3
 
 | Member | GitHub ID |
