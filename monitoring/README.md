@@ -4,12 +4,20 @@ Miles (`mileskv2`). This part checks whether the games sent to the API look diff
 
 For now this is the drift check and a prototype to pick the rule. The monitoring container and Grafana come after the check-in.
 
+## Plan
+
+1. The API saves every prediction (inputs + probability) in Postgres
+2. Every few minutes the monitoring job takes the last 100 and compares them to the training data with Evidently
+3. Results go into the drift_metrics table
+4. Grafana reads that table and shows drift on a dashboard
+5. When drift shows up, a Grafana alert fires and starts retraining
+
 ## Files
 
 | File | What it does |
 |---|---|
 | `src/steam_mlops/drift.py` | Drift check on the 13 API input fields, plus `inject_drift()` for testing |
-| `monitoring/prototype_drift.py` | Runs the check on the real data (train vs. test, with and without drift) |
+| `monitoring/prototype_drift.py` | Runs the check on the real data (train vs. test, with and without drift), or on the sample CSV with `--sample` |
 | `tests/test_drift.py` | 4 tests on the sample CSV: no alert on normal data, alert on injected drift |
 | `monitoring/requirements.txt` | Evidently, for the monitoring container later |
 
@@ -18,7 +26,8 @@ For now this is the drift check and a prototype to pick the rule. The monitoring
 ```bash
 pip install -r requirements-dev.txt -e . evidently==0.7.23 "pandas<3"
 pytest tests/test_drift.py
-python monitoring/prototype_drift.py   # downloads the data the first time
+python monitoring/prototype_drift.py --sample   # quick, uses the sample CSV
+python monitoring/prototype_drift.py            # full data, downloads it the first time
 ```
 
 Evidently 0.7.23 is the latest version and breaks on pandas 3, so it needs `pandas<3`. Without Evidently installed the drift tests skip.
