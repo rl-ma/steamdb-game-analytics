@@ -1,6 +1,9 @@
 # Data files (downloaded from Hugging Face)
 *.parquet
 *.csv
+# ...except the small sample the unit tests and CI use
+!tests/data/*.csv
+/data/
 
 # Python
 __pycache__/
@@ -12,6 +15,8 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+*.egg-info/
+build/
 
 # Notebooks
 .ipynb_checkpoints/
