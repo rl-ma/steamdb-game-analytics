@@ -1,123 +1,76 @@
 # Drift monitoring
 
-Owner: Miles Koseleci-Vieira (`mileskv2`), branch `feat/drift-monitoring`.
+Miles (`mileskv2`). This part checks whether the games sent to the API look different from the training data. Later it feeds the Grafana dashboards and the retraining alert.
 
-This folder will become the `monitoring` service: on a schedule it reads recent
-predictions from Postgres, runs Evidently against the training data, writes the
-results to `drift_metrics`, and starts retraining when drift is detected. Grafana
-dashboards and alerts for the API and for drift will also live here.
-
-For the Nov 27 check-in it contains a prototype that picks the drift rule.
+For now this is the drift check and a prototype to pick the rule. The monitoring container and Grafana come after the check-in.
 
 ## Files
 
-| File | What it is |
+| File | What it does |
 |---|---|
-| `drift.py` | Drift check on the 13 model-contract fields: feature preparation, the drift rule, a drift injector for testing |
-| `prototype_drift.py` | Runs the check on the real data: train vs. test, with and without injected drift, and over many small windows |
-| `tests/test_drift.py` | Unit tests on synthetic games: no alert on same-distribution data, alert on injected drift |
-| `requirements.txt` | Monitoring dependencies (Evidently 0.7.23 needs pandas below 3) |
+| `src/steam_mlops/drift.py` | Drift check on the 13 API input fields, plus `inject_drift()` for testing |
+| `monitoring/prototype_drift.py` | Runs the check on the real data (train vs. test, with and without drift) |
+| `tests/test_drift.py` | 4 tests on the sample CSV: no alert on normal data, alert on injected drift |
+| `monitoring/requirements.txt` | Evidently, for the monitoring container later |
 
 ## Run it
 
-From the repo root:
-
 ```bash
-pip install -r monitoring/requirements.txt
-pytest monitoring                       # about 5 seconds, no download
-python -m monitoring.prototype_drift    # downloads about 570 MB once, then about 3 minutes
+pip install -r requirements-dev.txt -e . evidently==0.7.23 "pandas<3"
+pytest tests/test_drift.py
+python monitoring/prototype_drift.py   # downloads the data the first time
 ```
 
-The prototype writes Evidently HTML reports to `monitoring/reports/`. The data and
-the reports are ignored by Git.
+Evidently 0.7.23 is the latest version and breaks on pandas 3, so it needs `pandas<3`. Without Evidently installed the drift tests skip.
 
-The loading code in `prototype_drift.py` copies the INSY 674 notebook so the
-prototype runs before the training package is merged. When `src/steam_mlops` is
-on `main`, it should import the data and split from there, so monitoring and
-training use the same reference set.
+## What gets compared
 
-## Monitored columns
+The 13 input fields turned into 19 columns:
 
-The API receives 13 fields per game. Evidently compares 19 columns derived from them:
+- numbers: price, required age, achievements, languages, audio languages, screenshots, number of genres, number of categories
+- categories: mac, linux, content notes, and a 0/1 flag for 8 common genres
 
-- numerical: `regular_price`, `required_age`, `achievements`, `n_languages`,
-  `n_audio_languages`, `n_screenshots`, number of genres, number of categories
-- categorical: `mac`, `linux`, `has_content_notes`, and a 0/1 flag for each of
-  eight common genres (Action, Adventure, Casual, Indie, RPG, Simulation,
-  Strategy, Free To Play)
+`name` and `release_date` are left out. Names are unique and new games always have newer dates, so they'd always look like drift.
 
-`name` and `release_date` are left out. Names are unique, and new games always
-have later release dates than the training set, so both would always register as drift.
+## Drift rule
 
-## The drift rule
+- KS test for number columns, chi-square for category columns
+- a column drifts if p < 0.05 / 19 (Bonferroni, since we test 19 columns at once)
+- a batch drifts if at least one column drifts
 
-- Each column gets a p-value test: Kolmogorov-Smirnov for numerical columns,
-  chi-square for categorical ones.
-- A column has drifted when its p-value is below 0.05 / 19 (Bonferroni correction).
-- A batch of requests has drifted when at least one column has drifted.
+I tried Evidently's defaults first. With 3,000+ reference rows it uses distance measures and only flags a batch when half the columns drift. That gave a lot of false alarms on small batches, and the injected drift only moves 3 of 19 columns, so it was never flagged.
 
-Evidently's defaults did not work on our data. With a reference set over 1,000
-rows it switches to distance measures (Wasserstein and Jensen-Shannon) and flags
-the whole batch only when half the columns drift. On windows of 100 requests with
-no drift, a quarter of the columns still looked drifted. And the injected drift
-(prices ×3, half of the non-Action games tagged Action) moves only 3 of 19
-columns, well below the 50% the default rule needs.
+## Results
 
-Results from `python -m monitoring.prototype_drift --repeats 40` (train = 3,293
-games as reference, test = 824 games):
+Reference is the training set (3,293 games). Fake drift is prices x3 and half the non-Action games tagged Action.
 
-| Comparison | Columns drifted | Alert |
+| Compared with | Columns drifted | Alert |
 |---|---|---|
-| train vs. test | 0 of 19 | no |
-| train vs. test with drift injected | 3 of 19 (`regular_price`, `genre_Action`, number of genres) | yes |
+| test set (824 games) | 0 / 19 | no |
+| test set with fake drift | 3 / 19 (price, Action, number of genres) | yes |
 
-| Window of test traffic | Alert rate, no drift | Alert rate, drift injected |
+Random batches of test games, 40 tries each:
+
+| Batch size | False alarms (no drift) | Caught (with drift) |
 |---|---|---|
-| 50 requests | 5.0% | 100% |
-| 100 requests | 2.5% | 100% |
-| 200 requests | 0% | 100% |
+| 50 | 5% | 100% |
+| 100 | 2.5% | 100% |
+| 200 | 0% | 100% |
 
-Plan: check the last 100 predictions each time the monitoring job runs.
+The plan is to check the last 100 predictions on each run.
 
-## Needed from the rest of the team
+## Need from others
 
-These are proposals. Each one changes someone else's part, so please reply on the PR.
+1. Irene, Ruilei: a `prediction_id` returned by `/predict` and saved with each prediction, so the simulator can save the true label under the same id. Needed for PR-AUC and F1.
+2. Irene, Mohamed: `predictions` should keep the 13 raw inputs (columns or one JSONB column) plus probability, label, model version and time.
+3. Mohamed: `drift_metrics` table, roughly `run_at, n_rows, n_drifted, share_drifted, dataset_drift, p_values (jsonb), pr_auc, f1, model_version`.
+4. Ishaan: name of the Prefect retraining deployment. The diagram has the Grafana alert starting retraining, either through a Grafana webhook or by the monitoring job calling Prefect. Can decide together.
 
-1. **A key that links predictions to labels** (Irene, Ruilei). PR-AUC and F1 need
-   each prediction matched to its true label. Proposal: `/predict` returns a
-   `prediction_id` (UUID) and stores it in `predictions`; the simulator writes
-   `ground_truth(prediction_id, lasting)` using that id.
-2. **The predictions table stores the raw request** (Irene, Mohamed). Monitoring
-   reads the same 13 fields the API received, either as columns or as one JSONB
-   `features` column, plus `predicted_proba`, `predicted_label`, `model_version`
-   and `created_at`.
-3. **`drift_metrics` table** (Mohamed). Proposed columns:
+## Still to do
 
-   | Column | Type |
-   |---|---|
-   | `id` | serial primary key |
-   | `run_at` | timestamptz |
-   | `window_start`, `window_end` | timestamptz |
-   | `n_rows` | integer |
-   | `n_drifted_columns` | integer |
-   | `share_drifted_columns` | real |
-   | `dataset_drift` | boolean |
-   | `column_p_values` | jsonb |
-   | `pr_auc`, `f1` | real, null when there are no labels yet |
-   | `model_version` | text |
-   | `retrain_triggered` | boolean |
-
-4. **Retraining entry point** (Ishaan). When drift is detected, the monitoring
-   service calls Prefect's `run_deployment` with the deployment name of the
-   training flow. Grafana shows the same alert so it appears in the screenshots.
-
-## Still to do for the final submission
-
-- [ ] Monitoring container: a loop that reads the last window from Postgres, runs `check_drift`, adds PR-AUC and F1 when labels exist, writes `drift_metrics`
-- [ ] Retraining trigger through the Prefect deployment, with a cooldown so one drift episode starts one retrain
-- [ ] Grafana provisioning in the repo: Postgres and Prometheus data sources
-- [ ] Dashboard 1: request rate, latency, error rate (Prometheus)
-- [ ] Dashboard 2: drift share, drifted columns, PR-AUC and F1 over time (Postgres)
-- [ ] Alert rule on `dataset_drift`
-- [ ] Screenshots before and after the simulator's drift switch, for the main README
-- [ ] Replace the copied loading code with imports from `src/steam_mlops`
+- [ ] monitoring container: every few minutes read the last 100 predictions, run the check, add PR-AUC and F1 when labels exist, write to `drift_metrics`
+- [ ] Grafana as code: Postgres and Prometheus data sources
+- [ ] dashboard for API traffic, latency and errors
+- [ ] dashboard for drift and model performance over time
+- [ ] alert on drift that starts retraining (one retrain per drift episode)
+- [ ] before/after drift screenshots for the main README
