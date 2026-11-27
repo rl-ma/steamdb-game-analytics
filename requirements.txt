@@ -5,3 +5,7 @@ pandas>=2.2.3
 pyarrow>=18.0.0
 scikit-learn>=1.6.0
 scipy>=1.14.1
+
+# Training pipeline and experiment tracking
+mlflow>=3.18.0
+skops>=0.16.0

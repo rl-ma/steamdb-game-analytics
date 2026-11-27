@@ -1,3 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steam-mlops"
+version = "0.1.0"
+description = "Predicting whether a Steam hit keeps its players (INSY 684 MLOps project)"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=2.2.3",
+    "numpy>=2.1.0",
+    "scikit-learn>=1.6.0",
+    "pyarrow>=18.0.0",
+    "mlflow>=3.18.0",
+    "skops>=0.16.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
@@ -8,6 +29,7 @@ select = ["E", "F", "I", "W"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "-ra"
 markers = [
     "integration: end-to-end tests requiring Docker Compose services",
