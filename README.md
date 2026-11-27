@@ -12,6 +12,9 @@ INSY 684 (Enterprise Data Science), McGill, Fall 2026: final group project
 | Ruilei Ma | rl-ma |
 | Irene Wang | icecomfort |
 
+
+
+
 Among Steam games that became hits (500+ reviews, released 2019–2023), we predict which ones still have **more players than expected for their size and age** years after launch, using only information available on launch day, and identify what drives staying power.
 
 ## Repository contents
@@ -56,8 +59,35 @@ flowchart LR
     prefect -->|register new champion| mlflow
 ```
 
-## Setup
+### Services
 
+| Service | Port | Owner | What it does |
+|---|---|---|---|
+| mlflow | 5000 | Mohamed, Ishaan | Tracks experiments and holds `steam-staying-power@champion` |
+| prefect | 4200 | Ishaan | Runs the training and retraining flow |
+| api | 8000 | Irene | `POST /predict`, `GET /health`, `GET /metrics` |
+| frontend | 8501 | Montse | Prediction form that calls the API |
+| postgres | 5432 | Mohamed | Tables `predictions`, `ground_truth`, `drift_metrics` |
+| monitoring | none | Miles | Runs Evidently on a schedule |
+| simulator | none | Ruilei | Replays test games; `DRIFT=on` shifts the inputs |
+| prometheus | 9090 | Mohamed | Scrapes the API's `/metrics` |
+| grafana | 3000 | Miles | Dashboards and alerts |
+
+
+## Team and ownership
+
+| Member | Owns |
+|---|---|
+| Ruilei Ma | Repo, CI/CD, traffic simulator |
+| Ishaan Khanna | Training pipeline, MLflow, Prefect |
+| Irene Wang | Model API |
+| Montserrat Balleza Velazquez | Frontend, README |
+| Mohamed Guessous | Docker Compose, infrastructure |
+| Miles Koseleci-Vieira | Drift monitoring, Grafana |
+
+
+## Setup
+s
 Coming soon. The final version will explain how to copy `.env.example` to `.env`, start everything with `docker compose up`, and shut it down again.
 
 ## Tools
