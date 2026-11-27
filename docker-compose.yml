@@ -16,7 +16,7 @@ services:
       retries: 10
 
   mlflow:
-    build: ./mlflow
+    build: ./docker/mlflow
     command: >
       mlflow server
       --host 0.0.0.0
