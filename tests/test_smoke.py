@@ -31,6 +31,14 @@ def test_core_notebook_dependencies_importable() -> None:
         assert importlib.import_module(pkg) is not None
 
 
+def test_parquet_roundtrip_with_pyarrow(tmp_path: Path) -> None:
+    df = pd.DataFrame({"appID": ["10", "20"], "regular_price": [9.99, 29.99], "lasting": [0, 1]})
+    parquet_file = tmp_path / "sample.parquet"
+    df.to_parquet(parquet_file, index=False)
+    loaded = pd.read_parquet(parquet_file)
+    pd.testing.assert_frame_equal(df, loaded)
+
+
 def test_source_notebook_is_valid_json() -> None:
     nb_path = REPO_ROOT / "steam_staying_power.ipynb"
     assert nb_path.exists()
@@ -72,3 +80,10 @@ def test_soft_voting_pipeline_smoke() -> None:
     probs = pipe.predict_proba(X)[:, 1]
     assert probs.shape == (n,)
     assert np.all((probs >= 0.0) & (probs <= 1.0))
+
+    unseen = pd.DataFrame(
+        {"regular_price": [19.99], "language_count": [5], "primary_genre": ["Sports"]}
+    )
+    unseen_prob = pipe.predict_proba(unseen)[:, 1]
+    assert unseen_prob.shape == (1,)
+    assert 0.0 <= unseen_prob[0] <= 1.0
